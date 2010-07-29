@@ -1,4 +1,4 @@
-use Test::More tests => 45;
+use Test::More tests => 85;
 
 BEGIN {
 use_ok( 'String::BOM','string_has_bom','fake' );
@@ -45,10 +45,21 @@ SKIP: {
         my ($name) = $file =~ m{\.bom\_(UTF-[0-9]+)\.[0-9]+};
         ok(String::BOM::file_has_bom($file) eq $name, "file_has_bom() $file");
         ok(!String::BOM::file_has_bom("$file.none"), "!file_has_bom() $file.none");
+        ok(!String::BOM::file_has_bom("$file.open_will_fail"), "!file_has_bom() $file.open_will_fail");
         ok(String::BOM::strip_bom_from_file($file), "strip_bom_from_file() $file");
-        ok(!String::BOM::strip_bom_from_file("$file.none"), "strip_bom_from_file() $file.none");
+        ok(String::BOM::strip_bom_from_file("$file.none"), "strip_bom_from_file() $file.none");
+        ok(!-e "$file.bak", ".bak file removed when changed");
+        ok(!-e "$file.none.bak", "not .bak file to remove when no change");
+        ok(!String::BOM::strip_bom_from_file("$file.open_will_fail"), "!strip_bom_from_file() $file.open_will_fail");
         ok(!String::BOM::file_has_bom($file), "!file_has_bom() after strip $file");
         ok(!String::BOM::file_has_bom("$file.none"), "!file_has_bom() (still) after strip $file.none");
+        
+        File::Slurp::write_file($file,$files{$file});  
+        File::Slurp::write_file("$file.none","miscdata$files{$file}");
+        ok(String::BOM::strip_bom_from_file($file,1), "strip_bom_from_file() $file");
+        ok(String::BOM::strip_bom_from_file("$file.none",1), "strip_bom_from_file() $file.none");
+        ok(-e "$file.bak", ".bak file preserved when requested when changed");
+        ok(!-e "$file.none.bak", "there is no .bak to preserve when requested when there is no change");
     }
     
     ok(!String::BOM::strip_bom_from_file("asfvavadf") && $!, "strip_bom_from_file() !-e file");

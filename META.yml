@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                String-BOM
-version:             0.1
+version:             0.2
 abstract:            simple utilities to check for a BOM and strip a BOM
 license:             ~
 author:              

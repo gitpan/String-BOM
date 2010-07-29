@@ -3,68 +3,83 @@ package String::BOM;
 # use warnings;
 # use strict;
 
-$String::BOM::VERSION = '0.1';
+$String::BOM::VERSION = '0.2';
 
 # http://www.unicode.org/faq/utf_bom.html#BOM
 # http://search.cpan.org/perldoc?PPI::Token::BOM
 %String::BOM::bom_types = (
-   "\x00\x00\xfe\xff" => 'UTF-32',
-   "\xff\xfe\x00\x00" => 'UTF-32',
-   "\xfe\xff"         => 'UTF-16',
-   "\xff\xfe"         => 'UTF-16',
-   "\xef\xbb\xbf"     => 'UTF-8',
+    "\x00\x00\xfe\xff" => 'UTF-32',
+    "\xff\xfe\x00\x00" => 'UTF-32',
+    "\xfe\xff"         => 'UTF-16',
+    "\xff\xfe"         => 'UTF-16',
+    "\xef\xbb\xbf"     => 'UTF-8',
 );
 
-
 sub string_has_bom {
-    if( $_[0] =~ m/^(\x00\x00\xfe\xff|\xff\xfe\x00\x00|\xfe\xff|\xff\xfe|\xef\xbb\xbf)/s ) {
+    if ( $_[0] =~ m/^(\x00\x00\xfe\xff|\xff\xfe\x00\x00|\xfe\xff|\xff\xfe|\xef\xbb\xbf)/s ) {
         return $String::BOM::bom_types{$1};
     }
-    return;    
+    return;
 }
 
 sub strip_bom_from_string {
-    my $copy = $_[0]; # Modification of a read-only value attempted at ...
+    my $copy = $_[0];    # Modification of a read-only value attempted at ...
     $copy =~ s/^(\x00\x00\xfe\xff|\xff\xfe\x00\x00|\xfe\xff|\xff\xfe|\xef\xbb\xbf)//s;
     return $copy;
 }
 
 sub file_has_bom {
+
     # Would rather not bring in >0.5MB Fcntl just for this so we do a read() of characters instead of a sysread() of bytes()
     #   sysopen(my $fh, $_[0],&Fcntl::O_RDONLY) or return;
     #   sysread($fh, my $buf, $length_in_bytes_of_biggest_bom);
-    open(my $fh, '<', $_[0]) or return;
-    read($fh, my $buf, 4) or return; # 4 "characters" should be big enough to bring in enough anything in bom_types
-    close($fh) or return;  
+    open( my $fh, '<', $_[0] ) or return;
+    $! = 0;              # yes this happens
+    read( $fh, my $buf, 4 ) or return;    # 4 "characters" should be big enough to bring in enough anything in bom_types
+    $! = 0;                               # yes this happens
+    close($fh) or return;
+    $! = 0;                               # yes this happens
     return string_has_bom($buf);
 }
 
 sub strip_bom_from_file {
-    if (file_has_bom($_[0])) {
+    if ( file_has_bom( $_[0] ) ) {
+
         # there is [probabaly] a better way to do this (faster, w/ out .bak file, etc), suggestions/patches welcome
-        
-        # could do inplace edit via ARGV and $^I but we'd still get a .bak and would have to do localizing and other ops ...
-        open(my $rfh, '<', $_[0]) or return;
-        open(my $wfh, '>', "$_[0].bak") or return;
-        my $read_buffer;
-        my $is_first_line = 1;
-        while ( read($rfh,$read_buffer,16) != 0) {
-            if ($is_first_line) {
-                print {$wfh} strip_bom_from_string($read_buffer); #  or return;
-                $is_first_line = 0;
-            }
-            else {
-                print {$wfh} $read_buffer; #  or return;
+
+        # in-place edit
+        my $inplace_error = 0;
+        {
+            local $^I              = '.bak';
+            local @ARGV            = ( $_[0] );
+            local $SIG{'__WARN__'} = sub {
+                $inplace_error++;
+
+                # my $err = shift();
+                # $inplace_error = {
+                #     'errno_int' => int($!),
+                #     'errno_str' => "$!",
+                #     'raw_warn'  => $err,
+                # };
+            };
+
+            while (<ARGV>) {
+                if ( $. == 1 ) {
+                    print strip_bom_from_string($_);    # ... write stripped line back to the file
+                    next;
+                }
+                print;                                  # ... write the line back to the file
             }
         }
-        close($rfh); # or return;
-        close($wfh) or return; #e.g. over quota ...
-        
-        rename("$_[0].bak", $_[0]) or return;
+
+        return if $inplace_error;
+
+        unlink "$_[0].bak" unless $_[1];
+
         return 1;
     }
     else {
-        return if $!; # file_has_bom() probably returned false due to FS issue
+        return if $!;                                   # file_has_bom() must've returned false due to FS issue (hence the "yes this happens" bits above)
         return 1;
     }
 }
@@ -72,16 +87,17 @@ sub strip_bom_from_file {
 sub import {
     shift;
     return if !@_;
-    
+
     my $caller = caller();
+
     # no strict 'refs';
     for (@_) {
         next if !defined &{$_} || m/\:\'/;
-        *{ "$caller\::$_" } = \&{$_};
-    }    
+        *{"$caller\::$_"} = \&{$_};
+    }
 }
 
-1; 
+1;
 
 __END__
 
@@ -91,14 +107,14 @@ String::BOM - simple utilities to check for a BOM and strip a BOM
 
 =head1 VERSION
 
-This document describes String::BOM version 0.1
+This document describes String::BOM version 0.2
 
 =head1 SYNOPSIS
 
     use String::BOM qw(string_has_bom);
     
     if (my $bom = string_has_bom($string)) {
-        print "According to the string's BOM it is “$bom”\n";
+        print "According to the string's BOM it is '$bom'\n";
     }
 
 =head1 DESCRIPTION
@@ -143,6 +159,10 @@ Check $! for file operation failure when it returns false.
 Takes a path and removes the BOM, if any, from it.
 
 Check $! for file operation failure when it returns false.
+
+A second argument with a true value will make it leave the original document on the file system with a .bak extension added.
+
+Note: If the file had no BOM and was thus not edited then there is no .bak file.
 
 =head1 DOM TYPES
 
