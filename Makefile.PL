@@ -9,6 +9,7 @@ WriteMakefile(
     ABSTRACT_FROM       => 'lib/String/BOM.pm',
     PL_FILES            => {},
     PREREQ_PM => {
+        'File::Slurp' => 0,
         'Test::More' => 0,
         'version'    => 0,
     },

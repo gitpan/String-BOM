@@ -3,7 +3,7 @@ package String::BOM;
 # use warnings;
 # use strict;
 
-$String::BOM::VERSION = '0.2';
+$String::BOM::VERSION = '0.3';
 
 # http://www.unicode.org/faq/utf_bom.html#BOM
 # http://search.cpan.org/perldoc?PPI::Token::BOM
@@ -107,7 +107,7 @@ String::BOM - simple utilities to check for a BOM and strip a BOM
 
 =head1 VERSION
 
-This document describes String::BOM version 0.2
+This document describes String::BOM version 0.3
 
 =head1 SYNOPSIS
 

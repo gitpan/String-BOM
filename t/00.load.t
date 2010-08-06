@@ -23,11 +23,11 @@ ok(!String::BOM::string_has_bom("miscdata\xfe\xff miscdata"),'!string_has_bom() 
 ok(!String::BOM::string_has_bom("miscdata\xff\xfe miscdata"),'!string_has_bom() UTF-16 like');
 ok(!String::BOM::string_has_bom("miscdata\xef\xbb\xbf miscdata"),'!string_has_bom() UTF-8 like');
 
-#### TODO file tests  ####
+#### file tests  ####
 
 eval "require File::Slurp;";
 SKIP: {
-    skip 'We need File::Slurp', 31 if $@;
+    skip 'Please install File::Slurp', 71 if $@;
     my %files = (
         '.bom_UTF-32.1' => "\x00\x00\xfe\xff miscdata",
         '.bom_UTF-32.2' => "\xff\xfe\x00\x00 miscdata",

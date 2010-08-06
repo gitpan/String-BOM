@@ -8,6 +8,7 @@ my $builder = Module::Build->new(
     dist_author         => 'Daniel Muey <http://drmuey.com/cpan_contact.pl>',
     dist_version_from   => 'lib/String/BOM.pm',
     requires => {
+        'File::Slurp' => 0,
         'Test::More' => 0,
         'version'    => 0,
     },
